@@ -1,16 +1,19 @@
 package com.example.accounting.presentation;
 
-import com.example.accounting.application.AccountingService;
-import com.example.accounting.application.FileParsingService;
-import com.example.accounting.application.dto.BankTransactionCsvRow;
-import com.example.accounting.application.dto.ClassificationResult;
-import com.example.accounting.application.dto.RulesJsonDto;
-import com.example.accounting.domain.entity.Transaction;
-import com.example.accounting.domain.repository.TransactionRepository;
+import com.example.accounting.application.dto.ProcessResult;
+import com.example.accounting.application.dto.TransactionDto;
+import com.example.accounting.application.facade.AccountingFacade;
+import com.example.accounting.infrastructure.persistence.TransactionRepositoryImpl;
+import com.example.accounting.presentation.dto.TransactionResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,41 +27,32 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v1/accounting")
 @RequiredArgsConstructor
 public class AccountingController {
+  private final AccountingFacade accountingFacade;
+  private final TransactionRepositoryImpl transactionRepository;
 
-  private final FileParsingService fileParsingService;
-  private final AccountingService accountingService;
-  private final TransactionRepository transactionRepository;
-
-  @PostMapping(value = "/process")
-  public ResponseEntity<?> processFiles(
+  @Operation(summary = "process", description = "Multipart 파일을 업로드합니다.")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "성공"),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청")
+  })
+  @PostMapping(value = "/process", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<ProcessResult> processFiles(
+      @Parameter(description = "csvFile", content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE))
       @RequestPart MultipartFile csvFile,
+      @Parameter(description = "rulesFile", content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE))
       @RequestPart MultipartFile rulesFile
   ) throws IOException {
 
-    List<BankTransactionCsvRow> transactions = fileParsingService.parseCsv(csvFile);
-    RulesJsonDto rules = fileParsingService.parseRules(rulesFile);
-
-    List<ClassificationResult> results = accountingService.classifyAndSave(transactions, rules);
-
-    long unclassifiedCount = results.stream().filter(r -> r.companyId() == null).count();
-
-    return ResponseEntity.ok(Map.of(
-        "processed", results.size(),
-        "classified", results.size() - unclassifiedCount,
-        "unclassified", unclassifiedCount
-    ));
+    ProcessResult result = accountingFacade.process(csvFile, rulesFile);
+    return ResponseEntity.ok(result);
   }
 
   @GetMapping("/records")
-  public ResponseEntity<?> getRecords(@RequestParam String companyId) {
-    List<Transaction> txs = transactionRepository.findByCompany_Id(companyId);
-    return ResponseEntity.ok(txs.stream().map(tx -> Map.of(
-        "transactionDate", tx.getTransactionDateTime(),
-        "description", tx.getDescription(),
-        "amount", tx.getDepositAmount().subtract(tx.getWithdrawalAmount()),
-        "category_id", tx.getCategory() != null ? tx.getCategory().getId() : null,
-        "category_name", tx.getCategory() != null ? tx.getCategory().getName() : "미분류"
-    )).toList());
+  public ResponseEntity<List<TransactionResponse>> getRecords(@RequestParam String companyId) {
+    List<TransactionDto> txs = accountingFacade.getTransactions(companyId);
+    return ResponseEntity.ok(txs.stream()
+        .map(TransactionResponse::from)
+        .toList());
   }
 }
 

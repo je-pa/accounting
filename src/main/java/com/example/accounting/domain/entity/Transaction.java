@@ -4,17 +4,18 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 @Entity
-@Setter
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Transaction {
+
   @Id
   @GeneratedValue(strategy = GenerationType.SEQUENCE)
   private Long id;
@@ -26,12 +27,27 @@ public class Transaction {
   private BigDecimal balanceAfter;
   private String branch;
 
-  @ManyToOne
-  @JoinColumn(name = "company_id")
-  private Company company;
+  private String companyId;
+  private String categoryId;
 
-  @ManyToOne
-  @JoinColumn(name = "category_id")
-  private Category category;
+  @Builder
+  public Transaction(LocalDateTime transactionDateTime,
+      String description,
+      BigDecimal depositAmount,
+      BigDecimal withdrawalAmount,
+      BigDecimal balanceAfter,
+      String branch,
+      String companyId,
+      String categoryId) {
+    this.transactionDateTime = transactionDateTime;
+    this.description = description;
+    this.depositAmount = depositAmount;
+    this.withdrawalAmount = withdrawalAmount;
+    this.balanceAfter = balanceAfter;
+    this.branch = branch;
+    this.companyId = companyId;
+    this.categoryId = categoryId;
+  }
 }
+
 

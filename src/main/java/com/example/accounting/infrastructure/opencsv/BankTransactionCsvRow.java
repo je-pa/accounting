@@ -1,5 +1,6 @@
-package com.example.accounting.application.dto;
+package com.example.accounting.infrastructure.opencsv;
 
+import com.example.accounting.application.dto.BankTransactionCsvRowDto;
 import com.opencsv.bean.CsvBindByName;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -30,6 +31,17 @@ public class BankTransactionCsvRow {
     return LocalDateTime.parse(transactionDateTimeRaw, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
   }
 
+  public BankTransactionCsvRowDto toDto() {
+    return new BankTransactionCsvRowDto(
+        this.transactionDateTimeRaw,
+        this.description,
+        this.depositAmount,
+        this.withdrawalAmount,
+        this.balanceAfter,
+        this.branch,
+        this.transactionDateTime()
+    );
+  }
 }
 
 

@@ -1,8 +1,7 @@
 package com.example.accounting.application.dto;
 
 public record ClassificationResult(
-    BankTransactionCsvRow transaction,
+    BankTransactionCsvRowDto transaction,
     String companyId,
-    String categoryId,
-    String categoryName
+    String categoryId
 ) {}
