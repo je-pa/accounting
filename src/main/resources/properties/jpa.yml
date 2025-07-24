@@ -1,0 +1,14 @@
+# local 환경
+spring:
+  config.activate.on-profile: local
+  jpa:
+    generate-ddl: true
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    hibernate:
+      ddl-auto: create
+    open-in-view: false
+
+---
